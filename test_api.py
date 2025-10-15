@@ -157,5 +157,5 @@ if __name__ == "__main__":
     print("All tests completed!")
     print("\nCatatan:")
     print("- Semua validasi employee sekarang hanya dari database")
-    print("- Tidak ada lagi ALLOWED_EMPLOYEE_IDS hardcoded")
+    print("- Tidak ada lagi ALLOWED_EMPLOYEE_IDS hardcoded!")
     print("- Employee yang tidak aktif tidak bisa scan!")
