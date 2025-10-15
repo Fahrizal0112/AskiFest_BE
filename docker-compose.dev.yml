@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database untuk development
+  postgres:
+    image: postgres:15-alpine
+    container_name: qr_scanner_db_dev
+    environment:
+      POSTGRES_DB: aski_scan_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev_password_123
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init_database.sql:/docker-entrypoint-initdb.d/init_database.sql
+    ports:
+      - "5433:5432"
+    networks:
+      - qr_scanner_dev_network
+
+  # Flask Application untuk development
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: qr_scanner_app_dev
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=aski_scan_dev
+      - DB_USER=postgres
+      - DB_PASSWORD=dev_password_123
+      - SECRET_KEY=dev-secret-key
+      - FLASK_ENV=development
+      - DEBUG=True
+    ports:
+      - "5001:5000"
+    depends_on:
+      - postgres
+    networks:
+      - qr_scanner_dev_network
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+    driver: local
+
+networks:
+  qr_scanner_dev_network:
+    driver: bridge

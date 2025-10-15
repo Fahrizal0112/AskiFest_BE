@@ -1,0 +1,30 @@
+# Development Dockerfile dengan hot reload
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install development dependencies
+RUN pip install --no-cache-dir watchdog
+
+# Copy application code
+COPY . .
+
+# Expose port
+EXPOSE 5000
+
+# Run with auto-reload for development
+CMD ["python", "-u", "app.py"]
