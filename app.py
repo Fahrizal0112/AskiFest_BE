@@ -13,11 +13,17 @@ CORS(app)
 
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 
+db_manager = None
+
 try:
     db_manager = DatabaseManager()
-    print("Database connection established successfully")
+    print("✓ Database connection established successfully")
+    print("✓ Database tables initialized")
 except Exception as e:
-    print(f"Failed to connect to database: {e}")
+    print(f"✗ Failed to initialize database: {e}")
+    print(f"✗ Error type: {type(e).__name__}")
+    import traceback
+    traceback.print_exc()
     db_manager = None
 
 @app.route('/')
@@ -306,11 +312,13 @@ def health_check():
         try:
             conn = db_manager.get_connection()
             cursor = conn.cursor()
-            cursor.execute('SELECT version()')
-            db_version = cursor.fetchone()[0]
+            cursor.execute('SELECT version() as version')
+            result = cursor.fetchone()
+            db_version = result['version'] if result else 'Unknown'
             
-            cursor.execute('SELECT COUNT(*) FROM employees WHERE is_active = TRUE')
-            total_employees = cursor.fetchone()[0]
+            cursor.execute('SELECT COUNT(*) as count FROM employees WHERE is_active = TRUE')
+            result = cursor.fetchone()
+            total_employees = result['count'] if result else 0
             
             cursor.close()
             conn.close()

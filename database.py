@@ -2,19 +2,43 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import os
+import time
 from config import Config
 
 class DatabaseManager:
     
     def __init__(self, database_url=None):
         self.database_url = database_url or Config.DATABASE_URL
+        self.connect_with_retry()
         self.init_database()
+    
+    def connect_with_retry(self, max_retries=5, delay=2):
+        """Try to connect to database with retry logic"""
+        for attempt in range(max_retries):
+            try:
+                conn = psycopg2.connect(
+                    self.database_url,
+                    cursor_factory=RealDictCursor,
+                    connect_timeout=10
+                )
+                conn.close()
+                print(f"✓ Database connection successful on attempt {attempt + 1}")
+                return
+            except psycopg2.Error as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠ Database connection attempt {attempt + 1} failed: {e}")
+                    print(f"  Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    print(f"✗ Failed to connect to database after {max_retries} attempts")
+                    raise
     
     def get_connection(self):
         try:
             conn = psycopg2.connect(
                 self.database_url,
-                cursor_factory=RealDictCursor
+                cursor_factory=RealDictCursor,
+                connect_timeout=10
             )
             return conn
         except psycopg2.Error as e:
@@ -87,8 +111,9 @@ class DatabaseManager:
                     EXECUTE FUNCTION update_updated_at_column()
             ''')
             
-            cursor.execute('SELECT COUNT(*) FROM employees')
-            count = cursor.fetchone()[0]
+            cursor.execute('SELECT COUNT(*) as count FROM employees')
+            result = cursor.fetchone()
+            count = result['count'] if result else 0
             
             if count == 0:
                 sample_employees = [
