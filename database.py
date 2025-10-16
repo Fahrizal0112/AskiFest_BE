@@ -219,6 +219,35 @@ class DatabaseManager:
             cursor.close()
             conn.close()
     
+    def check_scan_today(self, employee_id):
+        """
+        Check if employee has already scanned today with SUCCESS status
+        Returns True if already scanned today, False otherwise
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) as count
+                FROM scan_logs
+                WHERE employee_id = %s
+                AND status = 'SUCCESS'
+                AND DATE(scan_time) = CURRENT_DATE
+            ''', (employee_id,))
+            
+            result = cursor.fetchone()
+            count = result['count'] if result else 0
+            
+            return count > 0
+            
+        except psycopg2.Error as e:
+            print(f"Error checking today's scan: {e}")
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+    
     def get_employees(self, active_only=True):
         conn = self.get_connection()
         cursor = conn.cursor()

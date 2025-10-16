@@ -63,21 +63,8 @@ def scan_qr():
         
         employee = db_manager.get_employee_by_id(employee_id)
         
-        if employee:
-            db_manager.log_scan_attempt(employee_id, 'SUCCESS', ip_address, user_agent)
-            
-            return jsonify({
-                'success': True,
-                'message': f'Akses diterima untuk karyawan {employee_id}',
-                'employee_id': employee_id,
-                'employee_name': employee['name'],
-                'employee_department': employee.get('department', ''),
-                'employee_position': employee.get('position', ''),
-                'timestamp': datetime.now().isoformat(),
-                'status': 'ALLOWED'
-            }), 200
-        else:
-            db_manager.log_scan_attempt(employee_id, 'DENIED', ip_address, user_agent)
+        if not employee:
+            db_manager.log_scan_attempt(employee_id, 'DENIED', ip_address, user_agent, 'Employee not found')
             
             return jsonify({
                 'success': False,
@@ -86,6 +73,38 @@ def scan_qr():
                 'timestamp': datetime.now().isoformat(),
                 'status': 'DENIED'
             }), 403
+        
+        # Check if employee already scanned today with SUCCESS status
+        already_scanned = db_manager.check_scan_today(employee_id)
+        
+        if already_scanned:
+            db_manager.log_scan_attempt(employee_id, 'DENIED', ip_address, user_agent, 'Already scanned today')
+            
+            return jsonify({
+                'success': False,
+                'message': f'Akses ditolak untuk karyawan {employee_id}. Anda sudah melakukan scan hari ini',
+                'employee_id': employee_id,
+                'employee_name': employee['name'],
+                'employee_department': employee.get('department', ''),
+                'employee_position': employee.get('position', ''),
+                'timestamp': datetime.now().isoformat(),
+                'status': 'DENIED',
+                'reason': 'ALREADY_SCANNED_TODAY'
+            }), 403
+        
+        # Employee found and hasn't scanned today - allow access
+        db_manager.log_scan_attempt(employee_id, 'SUCCESS', ip_address, user_agent, 'Access granted')
+        
+        return jsonify({
+            'success': True,
+            'message': f'Akses diterima untuk karyawan {employee_id}',
+            'employee_id': employee_id,
+            'employee_name': employee['name'],
+            'employee_department': employee.get('department', ''),
+            'employee_position': employee.get('position', ''),
+            'timestamp': datetime.now().isoformat(),
+            'status': 'ALLOWED'
+        }), 200
             
     except Exception as e:
         if db_manager:
